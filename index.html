@@ -463,7 +463,7 @@
                         <input type="text" id="clientId" placeholder="Enter your Discord application client ID">
 
                         <label for="intervalSeconds">Update Interval (seconds)</label>
-                        <input type="number" id="intervalSeconds" min="1" step="1" placeholder="15">
+                        <input type="number" id="intervalSeconds" min="1" step="1" value="15">
 
                         <label for="lyrics">Status Lines</label>
                         <textarea id="lyrics" placeholder="Enter status text lines, one per line"></textarea>
@@ -1081,16 +1081,15 @@
                 setFieldValue('startupView', saved.startupView || 'home');
                 document.getElementById('runAtStartup').checked = saved.runAtStartup || false;
                 setFieldValue('trayBehavior', saved.trayBehavior || 'hide');
-                setFieldValue('stateLabel', saved.stateLabel || 'Made by eZbake with JavaScript');
+                setFieldValue('stateLabel', saved.stateLabel || '');
 
-                setFieldValue('clientId', saved.clientId || '881731543675060264');
+                setFieldValue('clientId', saved.clientId || '');
                 setFieldValue('intervalSeconds', saved.intervalSeconds || '15');
-                setFieldValue('lyrics', saved.lyrics || 'Yeah, I\'m forever a thug, ever a thug\nBaby, I\'m forever in love, forever in love\nMake me feel better with love\nWhen I said I love you, bitch, I said it with love, yeah');
-                setFieldValue('btn1Label', saved.btn1Label || 'My smoke playlist');
-                setFieldValue('btn1Url', saved.btn1Url || 'https://open.spotify.com/playlist/20oyQjLHq7URjrAwBRlops?si=c701cb6a0d764e1c');
+                setFieldValue('lyrics', saved.lyrics || '');
+                setFieldValue('btn1Label', saved.btn1Label || '');
+                setFieldValue('btn1Url', saved.btn1Url || '');
                 setFieldValue('btn2Label', saved.btn2Label || '');
                 setFieldValue('btn2Url', saved.btn2Url || '');
-                setFieldValue('stateLabel', saved.stateLabel || 'Made by eZbake with JavaScript');
 
                 const targetTab = saved.startupView === 'tools' ? 'tools' : 'home';
                 document.querySelectorAll('.menu button').forEach((btn) => btn.classList.remove('active'));
