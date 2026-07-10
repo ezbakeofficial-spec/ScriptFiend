@@ -416,6 +416,16 @@
                     <label for="homeNote">Notes</label>
                     <textarea id="homeNote" placeholder="Type notes, reminders, or launch ideas here..."></textarea>
                 </div>
+                <div class="panel">
+                    <h3>Update Center</h3>
+                    <p class="note">Check GitHub for new releases and download only when you're ready.</p>
+                    <div id="updateStatusCard" class="status-card">Update status will appear here.</div>
+                    <div class="button-row">
+                        <button class="primary" id="checkForUpdatesButton" onclick="checkForUpdates()">Check for updates</button>
+                        <button class="secondary" id="downloadUpdateButton" onclick="downloadUpdate()" style="display:none;">Download update</button>
+                        <button class="secondary" id="installUpdateButton" onclick="installUpdate()" style="display:none;">Install update</button>
+                    </div>
+                </div>
             </div>
 
             <div id="tools" class="tab">
@@ -1233,6 +1243,106 @@ When I said I love you, bitch, I said it with love, yeah</textarea>
             statusBox.style.color = payload.success ? '#2BFF6F' : '#ED4245';
         });
 
+        ipcRenderer.on('update-status', (event, payload) => {
+            const statusBox = document.getElementById('updateStatusCard');
+            if (!statusBox) return;
+
+            const downloadButton = document.getElementById('downloadUpdateButton');
+            const installButton = document.getElementById('installUpdateButton');
+            const checkButton = document.getElementById('checkForUpdatesButton');
+
+            if (payload.state === 'checking') {
+                statusBox.textContent = 'Checking for updates...';
+                statusBox.style.color = '#f3fff5';
+                statusBox.style.background = 'rgba(43, 255, 111, 0.06)';
+                checkButton.style.display = 'none';
+                downloadButton.style.display = 'none';
+                installButton.style.display = 'none';
+                return;
+            }
+
+            if (payload.state === 'available') {
+                statusBox.textContent = `Update available: v${payload.version}. Click to download.`;
+                statusBox.style.color = '#2BFF6F';
+                statusBox.style.background = 'rgba(43, 255, 111, 0.12)';
+                checkButton.style.display = 'none';
+                downloadButton.style.display = 'inline-flex';
+                installButton.style.display = 'none';
+                return;
+            }
+
+            if (payload.state === 'downloaded') {
+                statusBox.textContent = 'Update downloaded. Restart to install.';
+                statusBox.style.color = '#2BFF6F';
+                statusBox.style.background = 'rgba(43, 255, 111, 0.12)';
+                checkButton.style.display = 'none';
+                downloadButton.style.display = 'none';
+                installButton.style.display = 'inline-flex';
+                return;
+            }
+
+            if (payload.state === 'not-available') {
+                statusBox.textContent = 'No updates are available.';
+                statusBox.style.color = '#f3fff5';
+                statusBox.style.background = 'rgba(43, 255, 111, 0.06)';
+                checkButton.style.display = 'inline-flex';
+                downloadButton.style.display = 'none';
+                installButton.style.display = 'none';
+                return;
+            }
+
+            if (payload.state === 'error') {
+                statusBox.textContent = `Update error: ${payload.message}`;
+                statusBox.style.color = '#ED4245';
+                statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+                checkButton.style.display = 'inline-flex';
+                downloadButton.style.display = 'none';
+                installButton.style.display = 'none';
+            }
+        });
+
+        async function checkForUpdates() {
+            const statusBox = document.getElementById('updateStatusCard');
+            statusBox.textContent = 'Checking for updates...';
+            statusBox.style.color = '#f3fff5';
+            statusBox.style.background = 'rgba(43, 255, 111, 0.06)';
+            document.getElementById('checkForUpdatesButton').style.display = 'none';
+            document.getElementById('downloadUpdateButton').style.display = 'none';
+            document.getElementById('installUpdateButton').style.display = 'none';
+
+            const result = await ipcRenderer.invoke('check-for-updates');
+            if (!result.success) {
+                statusBox.textContent = result.message || result.error || 'Update check failed.';
+                statusBox.style.color = '#ED4245';
+                statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+                document.getElementById('checkForUpdatesButton').style.display = 'inline-flex';
+            }
+        }
+
+        async function downloadUpdate() {
+            const statusBox = document.getElementById('updateStatusCard');
+            statusBox.textContent = 'Downloading update...';
+            statusBox.style.color = '#f3fff5';
+            statusBox.style.background = 'rgba(43, 255, 111, 0.06)';
+            document.getElementById('downloadUpdateButton').style.display = 'none';
+
+            const result = await ipcRenderer.invoke('download-update');
+            if (!result.success) {
+                statusBox.textContent = result.message || result.error || 'Download failed.';
+                statusBox.style.color = '#ED4245';
+                statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+                document.getElementById('checkForUpdatesButton').style.display = 'inline-flex';
+            }
+        }
+
+        function installUpdate() {
+            const statusBox = document.getElementById('updateStatusCard');
+            statusBox.textContent = 'Installing update...';
+            statusBox.style.color = '#f3fff5';
+            statusBox.style.background = 'rgba(43, 255, 111, 0.06)';
+            ipcRenderer.invoke('install-update');
+        }
+
         function hideSplashScreen() {
             const splash = document.getElementById('splash-screen');
             if (!splash) return;
@@ -1250,6 +1360,27 @@ When I said I love you, bitch, I said it with love, yeah</textarea>
             renderSnippetList();
             renderProjectLists();
             loadSettings();
+            ipcRenderer.invoke('is-app-packaged').then((result) => {
+                if (result && result.packaged) {
+                    checkForUpdates();
+                } else {
+                    const statusBox = document.getElementById('updateStatusCard');
+                    if (statusBox) {
+                        statusBox.textContent = 'Update checks are disabled in development mode.';
+                        statusBox.style.color = '#f3fff5';
+                        statusBox.style.background = 'rgba(43, 255, 111, 0.06)';
+                        document.getElementById('checkForUpdatesButton').style.display = 'inline-flex';
+                    }
+                }
+            }).catch(() => {
+                const statusBox = document.getElementById('updateStatusCard');
+                if (statusBox) {
+                    statusBox.textContent = 'Could not determine packaging state.';
+                    statusBox.style.color = '#ED4245';
+                    statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+                    document.getElementById('checkForUpdatesButton').style.display = 'inline-flex';
+                }
+            });
             updateStatusText('Ready', '#2BFF6F');
         });
 

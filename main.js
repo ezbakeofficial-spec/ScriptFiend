@@ -1,12 +1,12 @@
 // At the top of your main.js file, with your other requires
 const {app, BrowserWindow, ipcMain, Tray, Menu, nativeImage} = require('electron');
-const path = require('path');  // Fixed your path import too (missing quotes)
+const path = require('path');
 const RPC = require("discord-rpc");
 const https = require("https");
-const updateApp = require('update-electron-app');  // ← Use this format
+const { autoUpdater } = require('electron-updater');
 
-// Then call it right after
-updateApp();
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
 
 //Okay so like...this app will only work if you have a completely unmodified discord client intalled on your computer. if you have a modified client such as BetterDiscord, Powercord, or Replugged, this app will not work. This is because those clients block the Discord RPC API. If you have a modified client installed, please uninstall it and install the official Discord client from https://discord.com/download.
 
@@ -139,6 +139,57 @@ app.on('activate', () => {
     } else {
         mainWindow.show();
         mainWindow.focus();
+    }
+});
+
+function sendUpdateStatus(payload) {
+    if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send('update-status', payload);
+    }
+}
+
+autoUpdater.on('checking-for-update', () => sendUpdateStatus({ state: 'checking' }));
+autoUpdater.on('update-available', (info) => sendUpdateStatus({ state: 'available', version: info.version, releaseNotes: info.releaseNotes || '' }));
+autoUpdater.on('update-not-available', () => sendUpdateStatus({ state: 'not-available' }));
+autoUpdater.on('update-downloaded', () => sendUpdateStatus({ state: 'downloaded' }));
+autoUpdater.on('error', (err) => sendUpdateStatus({ state: 'error', message: err ? err.message : 'Unknown update error' }));
+
+ipcMain.handle('check-for-updates', async () => {
+    if (!app.isPackaged) {
+        return { success: false, message: 'Update checks only work in packaged builds.' };
+    }
+
+    try {
+        await autoUpdater.checkForUpdates();
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('is-app-packaged', () => {
+    return { success: true, packaged: app.isPackaged };
+});
+
+ipcMain.handle('download-update', async () => {
+    if (!app.isPackaged) {
+        return { success: false, message: 'Update downloads only work in packaged builds.' };
+    }
+
+    try {
+        await autoUpdater.downloadUpdate();
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('install-update', () => {
+    try {
+        autoUpdater.quitAndInstall();
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
     }
 });
 

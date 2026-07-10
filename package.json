@@ -1,6 +1,6 @@
 {
   "name": "scriptfiend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "eZbakes personal toolkit for various purposes.",
   "main": "main.js",
   "author": "eZbake",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "discord-rpc": "^4.0.1",
-    "update-electron-app": "^3.3.0"
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "electron": "^31.0.0",
@@ -49,8 +49,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "YOUR_GITHUB_USERNAME",
-        "repo": "YOUR_GITHUB_REPO_NAME"
+        "owner": "ezbakeofficial-spec",
+        "repo": "ScriptFiend"
       }
     ]
   }
