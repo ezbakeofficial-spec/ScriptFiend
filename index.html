@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ScriptFiend</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #040806;
+            --panel: #07140b;
+            --panel-2: #0e2214;
+            --accent: #2bff6f;
+            --accent-2: #1f9a4d;
+            --danger: #3bff8c;
+            --warning: #b8ff4a;
+            --text: #d8ffe1;
+            --muted: #71a37a;
+            --border: #1b5c2d;
+        }
+
+        body[data-theme="shadow"] {
+            --bg: #020403;
+            --panel: #060b07;
+            --panel-2: #101911;
+            --accent: #7dff92;
+            --accent-2: #2da355;
+            --danger: #67ff9b;
+            --warning: #d7ff67;
+            --text: #eaffef;
+            --muted: #86b28b;
+            --border: #224d2e;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Courier New', Consolas, monospace;
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at top, #0a1a0f 0%, var(--bg) 60%, #020402 100%);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        .app-shell {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, rgba(11, 30, 16, 0.95), rgba(2, 7, 3, 0.98));
+            border: 1px solid var(--border);
+            box-shadow: inset 0 0 25px rgba(43, 255, 111, 0.12);
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(7, 20, 11, 0.95);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent);
+            text-shadow: 0 0 8px rgba(43, 255, 111, 0.35);
+        }
+
+        .menu {
+            display: flex;
+            gap: 8px;
+        }
+
+        .menu button {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .menu button.active {
+            background: rgba(43, 255, 111, 0.16);
+            color: var(--accent);
+        }
+
+        .content {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        #home {
+            position: relative;
+        }
+
+        #home::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            width: 380px;
+            height: 380px;
+            transform: translateX(-50%);
+            background: url('icon.png') center/contain no-repeat;
+            opacity: 0.18;
+            pointer-events: none;
+            filter: grayscale(55%);
+        }
+
+        .home-hero {
+            background: rgba(5, 14, 7, 0.96);
+            border: 1px solid rgba(43, 255, 111, 0.12);
+            border-radius: 14px;
+            padding: 22px 18px;
+            margin-bottom: 14px;
+            box-shadow: inset 0 0 18px rgba(43, 255, 111, 0.08);
+        }
+
+        .home-hero h2 {
+            margin: 0 0 10px;
+            color: var(--accent);
+            font-size: 26px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .note-page {
+            min-height: 280px;
+            background: rgba(8, 16, 10, 0.95);
+            border: 1px dashed rgba(43, 255, 111, 0.12);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 12px;
+            box-shadow: inset 0 0 12px rgba(43, 255, 111, 0.06);
+        }
+
+        .note-page textarea {
+            min-height: 220px;
+            background: rgba(2, 8, 4, 0.96);
+            border: 1px dashed rgba(43, 255, 111, 0.12);
+            padding: 14px;
+        }
+
+        .panel {
+            background: rgba(7, 20, 11, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: inset 0 0 10px rgba(43, 255, 111, 0.06);
+        }
+
+        .panel h3 {
+            margin: 0 0 10px 0;
+            color: var(--accent);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        label {
+            display: block;
+            margin: 8px 0 5px;
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #020604;
+            color: var(--text);
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .row > * { flex: 1; }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        button.primary, button.secondary {
+            border: 1px solid var(--border);
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-family: inherit;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        button.primary {
+            background: linear-gradient(180deg, var(--accent-2), #144423);
+            color: #f3fff5;
+        }
+
+        button.secondary {
+            background: #08110a;
+            color: var(--warning);
+        }
+
+        .status-card {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 700;
+            background: rgba(43, 255, 111, 0.12);
+            color: var(--accent);
+            border: 1px solid var(--border);
+        }
+
+        .tab { display: none; }
+        .tab.active { display: block; }
+
+        .subnav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .subnav button {
+            flex: 1;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            background: #08110a;
+            color: var(--text);
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 700;
+        }
+
+        .subnav button.active {
+            background: rgba(43, 255, 111, 0.14);
+            color: var(--accent);
+        }
+
+        .subtab { display: none; }
+        .subtab.active { display: block; }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent);
+        }
+
+        .note {
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.45;
+            margin-top: 8px;
+        }
+
+        #snippetList {
+            max-height: calc(100vh - 420px);
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .tool-card {
+            border: 1px solid var(--border);
+            background: rgba(2, 10, 5, 0.85);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .tool-card strong { color: var(--accent); }
+        .tool-card .meta { color: var(--muted); font-size: 11px; margin-top: 4px; }
+        .tool-card .tag {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 3px 6px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--warning);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        #splash-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, rgba(2, 6, 3, 0.95), rgba(1, 2, 1, 0.98));
+            color: var(--text);
+        }
+
+        #splash-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease-out;
+        }
+
+        .splash-card {
+            width: min(420px, calc(100% - 40px));
+            padding: 28px 24px;
+            border-radius: 18px;
+            background: rgba(7, 20, 11, 0.96);
+            border: 1px solid rgba(43, 255, 111, 0.14);
+            box-shadow: 0 0 40px rgba(43, 255, 111, 0.12);
+            text-align: center;
+        }
+
+        .splash-title {
+            margin: 0;
+            font-size: 26px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--accent);
+            text-shadow: 0 0 18px rgba(43, 255, 111, 0.35);
+        }
+
+        .splash-subtitle {
+            margin: 12px auto 0;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.6;
+            max-width: 320px;
+        }
+
+        .splash-progress {
+            margin: 22px auto 0;
+            width: 160px;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(43, 255, 111, 0.12);
+            overflow: hidden;
+        }
+
+        .splash-progress::before {
+            content: '';
+            display: block;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            animation: splash-pulse 1.8s ease-in-out infinite;
+        }
+
+        @keyframes splash-pulse {
+            0% { transform: translateX(-5%); }
+            100% { transform: translateX(105%); }
+        }
+    </style>
+</head>
+<body>
+    <div id="splash-screen">
+        <div class="splash-card">
+            <h1 class="splash-title">ScriptFiend</h1>
+            <p class="splash-subtitle">Preparing your Discord toolkit experience...</p>
+            <div class="splash-progress"></div>
+        </div>
+    </div>
+    <div class="app-shell">
+        <div class="topbar">
+            <div class="brand">ScriptFiend</div>
+            <div class="menu">
+                <button class="active" data-tab="home">Home</button>
+                <button data-tab="tools">Tools</button>
+                <button data-tab="settings">Settings</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="home" class="tab active">
+                <div class="home-hero">
+                    <h2>Welcome to ScriptFiend</h2>
+                    <p class="note">Your custom Discord toolkit is ready. Use Tools to manage presence, webhooks, snippets, regex, and JSON utilities.</p>
+                    <div class="button-row">
+                        <button class="primary" onclick="switchToTab('tools')">Open Tools</button>
+                        <button class="secondary" onclick="switchToTab('settings')">Open Settings</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>Quick Start</h3>
+                    <p class="note">Use the sub-tabs inside Tools to switch between Discord Presence, Webhook Sender, Snippet Manager, Regex Lab, and JSON Formatter.</p>
+                </div>
+                <div class="note-page">
+                    <label for="homeNote">Notes</label>
+                    <textarea id="homeNote" placeholder="Type notes, reminders, or launch ideas here..."></textarea>
+                </div>
+            </div>
+
+            <div id="tools" class="tab">
+                <div class="subnav">
+                    <button class="active" data-subtab="presence">Discord Presence</button>
+                    <button data-subtab="webhook">Webhook Sender</button>
+                    <button data-subtab="snippets">Snippet Manager</button>
+                    <button data-subtab="jsonformatter">JSON Formatter</button>
+                    <button data-subtab="regexlab">Regex Lab</button>
+                    <button data-subtab="projectlauncher">Project Launcher</button>
+                </div>
+
+                <div id="presence" class="subtab active">
+                    <div class="panel">
+                        <h3>Discord Presence Control</h3>
+                        <label for="clientId">Client ID</label>
+                        <input type="text" id="clientId" value="881731543675060264">
+
+                        <label for="intervalSeconds">Update Interval (seconds)</label>
+                        <input type="number" id="intervalSeconds" min="1" step="1" value="15">
+
+                        <label for="lyrics">Status Lines</label>
+                        <textarea id="lyrics">Yeah, I'm forever a thug, ever a thug
+Baby, I'm forever in love, forever in love
+Make me feel better with love
+When I said I love you, bitch, I said it with love, yeah</textarea>
+                    </div>
+
+                    <div class="panel">
+                        <h3>Rich Presence Buttons</h3>
+                        <div class="row">
+                            <div>
+                                <label for="btn1Label">Button 1 Label</label>
+                                <input type="text" id="btn1Label" value="My smoke playlist">
+                            </div>
+                            <div>
+                                <label for="btn1Url">Button 1 URL</label>
+                                <input type="text" id="btn1Url" value="https://open.spotify.com/playlist/20oyQjLHq7URjrAwBRlops?si=c701cb6a0d764e1c">
+                            </div>
+                        </div>
+
+                        <div class="row" style="margin-top:8px;">
+                            <div>
+                                <label for="btn2Label">Button 2 Label</label>
+                                <input type="text" id="btn2Label" placeholder="Label">
+                            </div>
+                            <div>
+                                <label for="btn2Url">Button 2 URL</label>
+                                <input type="text" id="btn2Url" placeholder="https://example.com">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="primary" onclick="startStatus()">Start Loop</button>
+                        <button class="secondary" onclick="stopStatus()">Stop</button>
+                        <button class="secondary" onclick="savePresenceSettings()">Save Presence</button>
+                    </div>
+
+                    <div id="status" class="status-card">Idle</div>
+                    <div id="presenceStatus" class="status-card">Presence settings not saved.</div>
+                    <p class="note">This tool currently manages Discord presence cycling. More utilities will be added to this toolkit over time.</p>
+                </div>
+
+                <div id="webhook" class="subtab">
+                    <div class="panel">
+                        <h3>Webhook Sender</h3>
+                        <label for="webhookUrl">Webhook URL</label>
+                        <input type="text" id="webhookUrl" placeholder="Enter webhook URL">
+
+                        <label for="webhookMessage">Message</label>
+                        <textarea id="webhookMessage" placeholder="Type your message here"></textarea>
+
+                        <div class="button-row">
+                            <button class="primary" onclick="sendWebhook()">Send Message</button>
+                        </div>
+
+                        <div id="webhookStatus" class="status-card">Awaiting webhook input</div>
+                    </div>
+                </div>
+
+                <div id="snippets" class="subtab">
+                    <div class="panel">
+                        <h3>Snippet Manager</h3>
+                        <label for="snippetTitle">Snippet Title</label>
+                        <input type="text" id="snippetTitle" placeholder="Enter a title">
+
+                        <label for="snippetContent">Snippet Content</label>
+                        <textarea id="snippetContent" placeholder="Enter code, text, or predefined content"></textarea>
+
+                        <div class="button-row">
+                            <button class="primary" onclick="saveSnippet()">Save Snippet</button>
+                            <button class="secondary" onclick="clearSnippetForm()">Clear</button>
+                        </div>
+
+                        <div class="status-card" id="snippetStatus">No snippets saved yet.</div>
+                    </div>
+
+                    <div class="panel">
+                        <h3>Saved Snippets</h3>
+                        <div id="snippetList"></div>
+                    </div>
+                </div>
+
+                <div id="jsonformatter" class="subtab">
+                    <div class="panel">
+                        <h3>JSON Formatter</h3>
+                        <label for="jsonInput">JSON Input</label>
+                        <textarea id="jsonInput" placeholder='Paste JSON here'></textarea>
+
+                        <div class="button-row">
+                            <button class="primary" onclick="formatJson()">Format JSON</button>
+                            <button class="secondary" onclick="minifyJson()">Minify JSON</button>
+                            <button class="secondary" onclick="copyJson()">Copy Result</button>
+                        </div>
+
+                        <div id="jsonStatus" class="status-card">Paste JSON to format or minify.</div>
+                    </div>
+                </div>
+
+                <div id="regexlab" class="subtab">
+                    <div class="panel">
+                        <h3>Regex Lab</h3>
+                        <label for="regexPattern">Pattern</label>
+                        <input type="text" id="regexPattern" placeholder="Enter regex pattern, e.g. ^[A-Za-z0-9]+$">
+
+                        <label for="regexFlags">Flags</label>
+                        <input type="text" id="regexFlags" placeholder="gi">
+
+                        <label for="regexInput">Test Text</label>
+                        <textarea id="regexInput" placeholder="Enter text to match against"></textarea>
+
+                        <div class="button-row">
+                            <button class="primary" onclick="runRegex()">Run Regex</button>
+                            <button class="secondary" onclick="clearRegexLab()">Clear</button>
+                        </div>
+
+                        <div id="regexStatus" class="status-card">Pattern results will appear here.</div>
+                        <div id="regexResult" class="status-card" style="white-space: pre-wrap; text-align:left;"></div>
+                    </div>
+                </div>
+
+                <div id="projectlauncher" class="subtab">
+                    <div class="panel">
+                        <h3>Project Launcher</h3>
+                        <div class="row" style="gap: 10px; margin-bottom: 10px;">
+                            <div>
+                                <label for="projectTitle">Project Name</label>
+                                <input type="text" id="projectTitle" placeholder="Project name">
+                            </div>
+                            <div>
+                                <label for="projectPath">Project Path</label>
+                                <input type="text" id="projectPath" placeholder="C:\\path\\to\\project or folder">
+                            </div>
+                        </div>
+                        <div class="button-row">
+                            <button class="primary" onclick="addProjectEntry('projects')">Add Project</button>
+                        </div>
+
+                        <div class="panel" style="margin-top: 12px;">
+                            <h3>Projects</h3>
+                            <div id="projectList"></div>
+                        </div>
+
+                        <div class="row" style="gap: 10px; margin-top: 20px;">
+                            <div>
+                                <label for="terminalTitle">Terminal Name</label>
+                                <input type="text" id="terminalTitle" placeholder="Terminal name">
+                            </div>
+                            <div>
+                                <label for="terminalCommand">Command</label>
+                                <input type="text" id="terminalCommand" placeholder="e.g. cmd.exe /k cd C:\\project">
+                            </div>
+                        </div>
+                        <div class="button-row">
+                            <button class="primary" onclick="addProjectEntry('terminals')">Add Terminal</button>
+                        </div>
+
+                        <div class="panel" style="margin-top: 12px;">
+                            <h3>Terminals</h3>
+                            <div id="terminalList"></div>
+                        </div>
+
+                        <div class="row" style="gap: 10px; margin-top: 20px;">
+                            <div>
+                                <label for="serverTitle">Server Name</label>
+                                <input type="text" id="serverTitle" placeholder="Server name">
+                            </div>
+                            <div>
+                                <label for="serverUrl">Local Server URL</label>
+                                <input type="text" id="serverUrl" placeholder="http://localhost:3000">
+                            </div>
+                        </div>
+                        <div class="button-row">
+                            <button class="primary" onclick="addProjectEntry('servers')">Add Server</button>
+                        </div>
+
+                        <div class="panel" style="margin-top: 12px;">
+                            <h3>Local Servers</h3>
+                            <div id="serverList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings" class="tab">
+                <div class="panel">
+                    <h3>Toolkit Settings</h3>
+
+                    <label for="startupView">Default Startup View</label>
+                    <select id="startupView">
+                        <option value="home">Home</option>
+                        <option value="tools">Tools</option>
+                    </select>
+
+                    <label class="checkbox-label" for="runAtStartup">
+                        <input type="checkbox" id="runAtStartup">
+                        Run ScriptFiend at system startup
+                    </label>
+
+                    <label for="trayBehavior">Tray Behavior</label>
+                    <select id="trayBehavior">
+                        <option value="hide">Hide to tray on close</option>
+                        <option value="stay">Keep window open</option>
+                    </select>
+
+                    <label for="stateLabel">Custom Status Label</label>
+                    <input type="text" id="stateLabel" value="Made by eZbake with JavaScript">
+
+                    <div class="button-row">
+                        <button class="primary" onclick="saveSettings()">Save Settings</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Toolkit Modules</h3>
+                    <div id="tool-list"></div>
+                </div>
+            </div>
+        </div>
+
+    <script>
+        const { ipcRenderer, shell } = require('electron');
+        const { exec } = require('child_process');
+
+        const STORAGE_KEY = 'ezbakes-toolkit-settings';
+        const toolkitModules = [
+            {
+                title: 'Discord Presence',
+                description: 'Cycle custom Rich Presence messages and buttons.',
+                status: 'Active',
+                note: 'Current core tool'
+            },
+            {
+                title: 'Snippet Manager',
+                description: 'Store frequently used code blocks for rapid reuse.',
+                status: 'Active',
+                note: 'Great for boilerplate and helpers'
+            },
+            {
+                title: 'JSON Formatter',
+                description: 'Validate, format, and minify JSON payloads fast.',
+                status: 'Active',
+                note: 'Helpful for API and config work'
+            },
+            {
+                title: 'Regex Lab',
+                description: 'Test expressions and inspect matching results live.',
+                status: 'Active',
+                note: 'Useful for conversions and parsing'
+            },
+            {
+                title: 'Project Launcher',
+                description: 'Open projects, terminals, and local servers from one panel.',
+                status: 'Active',
+                note: 'Perfect for future coding workflows'
+            }
+        ];
+
+        // Keep the UI code small and reusable by grabbing values through one helper.
+        function getFieldValue(id) {
+            const element = document.getElementById(id);
+            return element ? element.value.trim() : '';
+        }
+
+        function setFieldValue(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.value = value;
+            }
+        }
+
+        // Render the future toolkit modules as clean cards.
+        function renderToolkitModules() {
+            const container = document.getElementById('tool-list');
+            if (!container) return;
+
+            container.innerHTML = toolkitModules.map((tool) => `
+                <div class="tool-card">
+                    <strong>${tool.title}</strong>
+                    <div class="meta">${tool.description}</div>
+                    <div class="tag">${tool.status}</div>
+                    <div class="meta">${tool.note}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderSnippetList() {
+            const container = document.getElementById('snippetList');
+            if (!container) return;
+
+            const snippets = JSON.parse(localStorage.getItem('scriptfiend-snippets') || '[]');
+            if (snippets.length === 0) {
+                container.innerHTML = '<div class="note">No saved snippets yet. Add one using the form above.</div>';
+                return;
+            }
+
+            container.innerHTML = snippets.map((snippet, index) => `
+                <div class="tool-card">
+                    <strong>${snippet.title}</strong>
+                    <div class="meta">${snippet.content.replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div>
+                    <div class="button-row">
+                        <button class="secondary" onclick="loadSnippet(${index})">Load</button>
+                        <button class="secondary" onclick="deleteSnippet(${index})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatJson() {
+            const input = getFieldValue('jsonInput');
+            const statusBox = document.getElementById('jsonStatus');
+            try {
+                const parsed = JSON.parse(input);
+                const formatted = JSON.stringify(parsed, null, 2);
+                document.getElementById('jsonInput').value = formatted;
+                statusBox.textContent = 'JSON formatted successfully.';
+                statusBox.style.color = '#2BFF6F';
+                statusBox.style.background = 'rgba(43, 255, 111, 0.12)';
+            } catch (err) {
+                statusBox.textContent = `Invalid JSON: ${err.message}`;
+                statusBox.style.color = '#ED4245';
+                statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+            }
+        }
+
+        function minifyJson() {
+            const input = getFieldValue('jsonInput');
+            const statusBox = document.getElementById('jsonStatus');
+            try {
+                const parsed = JSON.parse(input);
+                const minified = JSON.stringify(parsed);
+                document.getElementById('jsonInput').value = minified;
+                statusBox.textContent = 'JSON minified successfully.';
+                statusBox.style.color = '#2BFF6F';
+                statusBox.style.background = 'rgba(43, 255, 111, 0.12)';
+            } catch (err) {
+                statusBox.textContent = `Invalid JSON: ${err.message}`;
+                statusBox.style.color = '#ED4245';
+                statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+            }
+        }
+
+        function copyJson() {
+            const input = document.getElementById('jsonInput');
+            const statusBox = document.getElementById('jsonStatus');
+            if (!input.value.trim()) {
+                statusBox.textContent = 'Nothing to copy.';
+                statusBox.style.color = '#ED4245';
+                statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+                return;
+            }
+
+            navigator.clipboard.writeText(input.value).then(() => {
+                statusBox.textContent = 'JSON copied to clipboard.';
+                statusBox.style.color = '#2BFF6F';
+                statusBox.style.background = 'rgba(43, 255, 111, 0.12)';
+            }).catch((err) => {
+                statusBox.textContent = `Copy failed: ${err.message}`;
+                statusBox.style.color = '#ED4245';
+                statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+            });
+        }
+
+        function runRegex() {
+            const pattern = getFieldValue('regexPattern');
+            const flags = getFieldValue('regexFlags');
+            const input = getFieldValue('regexInput');
+            const statusBox = document.getElementById('regexStatus');
+            const resultBox = document.getElementById('regexResult');
+
+            if (!pattern) {
+                statusBox.textContent = 'Regex pattern is required.';
+                statusBox.style.color = '#ED4245';
+                statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+                resultBox.textContent = '';
+                return;
+            }
+
+            try {
+                const regex = new RegExp(pattern, flags);
+                const matches = [];
+                let match;
+                let index = 0;
+
+                while ((match = regex.exec(input)) !== null) {
+                    matches.push({
+                        index: match.index,
+                        match: match[0],
+                        groups: match.slice(1)
+                    });
+                    if (!regex.global) break;
+                    index += 1;
+                    if (index > 200) break;
+                }
+
+                statusBox.textContent = `Found ${matches.length} match${matches.length === 1 ? '' : 'es'}.`;
+                statusBox.style.color = '#2BFF6F';
+                statusBox.style.background = 'rgba(43, 255, 111, 0.12)';
+                resultBox.textContent = matches.length
+                    ? matches.map((entry, idx) => `#${idx + 1} @ ${entry.index}: ${entry.match}${entry.groups.length ? '\nGroups: ' + JSON.stringify(entry.groups) : ''}`).join('\n\n')
+                    : 'No matches found.';
+            } catch (err) {
+                statusBox.textContent = `Regex error: ${err.message}`;
+                statusBox.style.color = '#ED4245';
+                statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+                resultBox.textContent = '';
+            }
+        }
+
+        function clearRegexLab() {
+            setFieldValue('regexPattern', '');
+            setFieldValue('regexFlags', '');
+            setFieldValue('regexInput', '');
+            document.getElementById('regexStatus').textContent = 'Pattern results will appear here.';
+            document.getElementById('regexResult').textContent = '';
+        }
+
+        function getProjectLauncherState() {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            return saved.projectLauncher || { projects: [], terminals: [], servers: [] };
+        }
+
+        function saveProjectLauncherState(state) {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            saved.projectLauncher = state;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+        }
+
+        function renderProjectLists() {
+            const state = getProjectLauncherState();
+
+            const projectContainer = document.getElementById('projectList');
+            const terminalContainer = document.getElementById('terminalList');
+            const serverContainer = document.getElementById('serverList');
+
+            if (projectContainer) {
+                projectContainer.innerHTML = state.projects.length
+                    ? state.projects.map((entry, index) => `
+                        <div class="tool-card">
+                            <strong>${entry.title}</strong>
+                            <div class="meta">${entry.path}</div>
+                            <div class="button-row">
+                                <button class="secondary" onclick="launchProjectEntry('projects', ${index})">Open</button>
+                                <button class="secondary" onclick="deleteProjectEntry('projects', ${index})">Remove</button>
+                            </div>
+                        </div>
+                    `).join('')
+                    : '<div class="note">No projects configured yet.</div>';
+            }
+
+            if (terminalContainer) {
+                terminalContainer.innerHTML = state.terminals.length
+                    ? state.terminals.map((entry, index) => `
+                        <div class="tool-card">
+                            <strong>${entry.title}</strong>
+                            <div class="meta">${entry.command}</div>
+                            <div class="button-row">
+                                <button class="secondary" onclick="launchProjectEntry('terminals', ${index})">Run</button>
+                                <button class="secondary" onclick="deleteProjectEntry('terminals', ${index})">Remove</button>
+                            </div>
+                        </div>
+                    `).join('')
+                    : '<div class="note">No terminal commands configured yet.</div>';
+            }
+
+            if (serverContainer) {
+                serverContainer.innerHTML = state.servers.length
+                    ? state.servers.map((entry, index) => `
+                        <div class="tool-card">
+                            <strong>${entry.title}</strong>
+                            <div class="meta">${entry.url}</div>
+                            <div class="button-row">
+                                <button class="secondary" onclick="launchProjectEntry('servers', ${index})">Open</button>
+                                <button class="secondary" onclick="deleteProjectEntry('servers', ${index})">Remove</button>
+                            </div>
+                        </div>
+                    `).join('')
+                    : '<div class="note">No local servers configured yet.</div>';
+            }
+        }
+
+        function addProjectEntry(type) {
+            const state = getProjectLauncherState();
+            let entry;
+
+            if (type === 'projects') {
+                const title = getFieldValue('projectTitle');
+                const path = getFieldValue('projectPath');
+                if (!title || !path) return;
+                entry = { title, path };
+                state.projects.push(entry);
+            }
+
+            if (type === 'terminals') {
+                const title = getFieldValue('terminalTitle');
+                const command = getFieldValue('terminalCommand');
+                if (!title || !command) return;
+                entry = { title, command };
+                state.terminals.push(entry);
+            }
+
+            if (type === 'servers') {
+                const title = getFieldValue('serverTitle');
+                const url = getFieldValue('serverUrl');
+                if (!title || !url) return;
+                entry = { title, url };
+                state.servers.push(entry);
+            }
+
+            saveProjectLauncherState(state);
+            renderProjectLists();
+            clearProjectLauncherForm(type);
+        }
+
+        function deleteProjectEntry(type, index) {
+            const state = getProjectLauncherState();
+            if (!state[type] || !state[type][index]) return;
+            state[type].splice(index, 1);
+            saveProjectLauncherState(state);
+            renderProjectLists();
+        }
+
+        function launchProjectEntry(type, index) {
+            const state = getProjectLauncherState();
+            const entry = state[type] && state[type][index];
+            if (!entry) return;
+
+            if (type === 'projects') {
+                shell.openPath(entry.path).catch(() => {});
+            }
+
+            if (type === 'terminals') {
+                exec(entry.command, { cwd: process.cwd(), shell: true }, (error) => {
+                    if (error) {
+                        console.error('Terminal launch failed:', error);
+                    }
+                });
+            }
+
+            if (type === 'servers') {
+                shell.openExternal(entry.url).catch(() => {});
+            }
+        }
+
+        function clearProjectLauncherForm(type) {
+            if (type === 'projects') {
+                setFieldValue('projectTitle', '');
+                setFieldValue('projectPath', '');
+            }
+
+            if (type === 'terminals') {
+                setFieldValue('terminalTitle', '');
+                setFieldValue('terminalCommand', '');
+            }
+
+            if (type === 'servers') {
+                setFieldValue('serverTitle', '');
+                setFieldValue('serverUrl', '');
+            }
+        }
+
+        function saveSnippet() {
+            const title = getFieldValue('snippetTitle');
+            const content = getFieldValue('snippetContent');
+            const statusBox = document.getElementById('snippetStatus');
+
+            if (!title || !content) {
+                statusBox.textContent = 'Snippet title and content are required.';
+                statusBox.style.color = '#ED4245';
+                return;
+            }
+
+            const snippets = JSON.parse(localStorage.getItem('scriptfiend-snippets') || '[]');
+            snippets.push({ title, content, createdAt: new Date().toISOString() });
+            localStorage.setItem('scriptfiend-snippets', JSON.stringify(snippets));
+
+            statusBox.textContent = `Saved snippet: ${title}`;
+            statusBox.style.color = '#2BFF6F';
+            clearSnippetForm();
+            renderSnippetList();
+        }
+
+        function loadSnippet(index) {
+            const snippets = JSON.parse(localStorage.getItem('scriptfiend-snippets') || '[]');
+            const snippet = snippets[index];
+            if (!snippet) return;
+
+            setFieldValue('snippetTitle', snippet.title);
+            setFieldValue('snippetContent', snippet.content);
+            const statusBox = document.getElementById('snippetStatus');
+            statusBox.textContent = `Loaded snippet: ${snippet.title}`;
+            statusBox.style.color = '#2BFF6F';
+        }
+
+        function deleteSnippet(index) {
+            const snippets = JSON.parse(localStorage.getItem('scriptfiend-snippets') || '[]');
+            const removed = snippets.splice(index, 1);
+            localStorage.setItem('scriptfiend-snippets', JSON.stringify(snippets));
+
+            const statusBox = document.getElementById('snippetStatus');
+            statusBox.textContent = removed.length ? `Deleted snippet: ${removed[0].title}` : 'Snippet not found.';
+            statusBox.style.color = removed.length ? '#2BFF6F' : '#ED4245';
+            renderSnippetList();
+        }
+
+        function clearSnippetForm() {
+            setFieldValue('snippetTitle', '');
+            setFieldValue('snippetContent', '');
+        }
+
+        // Load saved settings so the toolkit feels persistent.
+        async function loadSettings() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+                setFieldValue('startupView', saved.startupView || 'home');
+                document.getElementById('runAtStartup').checked = saved.runAtStartup || false;
+                setFieldValue('trayBehavior', saved.trayBehavior || 'hide');
+                setFieldValue('stateLabel', saved.stateLabel || 'Made by eZbake with JavaScript');
+
+                setFieldValue('clientId', saved.clientId || '881731543675060264');
+                setFieldValue('intervalSeconds', saved.intervalSeconds || '15');
+                setFieldValue('lyrics', saved.lyrics || 'Yeah, I\'m forever a thug, ever a thug\nBaby, I\'m forever in love, forever in love\nMake me feel better with love\nWhen I said I love you, bitch, I said it with love, yeah');
+                setFieldValue('btn1Label', saved.btn1Label || 'My smoke playlist');
+                setFieldValue('btn1Url', saved.btn1Url || 'https://open.spotify.com/playlist/20oyQjLHq7URjrAwBRlops?si=c701cb6a0d764e1c');
+                setFieldValue('btn2Label', saved.btn2Label || '');
+                setFieldValue('btn2Url', saved.btn2Url || '');
+                setFieldValue('stateLabel', saved.stateLabel || 'Made by eZbake with JavaScript');
+
+                const targetTab = saved.startupView === 'tools' ? 'tools' : 'home';
+                document.querySelectorAll('.menu button').forEach((btn) => btn.classList.remove('active'));
+                document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
+                const targetButton = document.querySelector(`.menu button[data-tab="${targetTab}"]`);
+                if (targetButton) targetButton.classList.add('active');
+                const targetElement = document.getElementById(targetTab);
+                if (targetElement) targetElement.classList.add('active');
+
+                const startupSettings = await ipcRenderer.invoke('get-run-at-startup');
+                if (startupSettings && startupSettings.success) {
+                    document.getElementById('runAtStartup').checked = startupSettings.enabled;
+                }
+            } catch (err) {
+                console.warn('Could not load saved settings:', err);
+            }
+        }
+
+        function switchToTab(tabId) {
+            document.querySelectorAll('.menu button').forEach((btn) => btn.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
+            const next = document.querySelector(`.menu button[data-tab="${tabId}"]`);
+            if (next) next.classList.add('active');
+            const target = document.getElementById(tabId);
+            if (target) target.classList.add('active');
+        }
+
+        document.querySelectorAll('.menu button').forEach((button) => {
+            button.addEventListener('click', () => {
+                switchToTab(button.dataset.tab);
+            });
+        });
+
+        document.querySelectorAll('.subnav button').forEach((button) => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.subnav button').forEach((btn) => btn.classList.remove('active'));
+                document.querySelectorAll('.subtab').forEach((tab) => tab.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(button.dataset.subtab).classList.add('active');
+            });
+        });
+
+        // Update the visible status text and the card colors.
+        function updateStatusText(text, color = '#2BFF6F') {
+            const status = document.getElementById('status');
+            if (!status) return;
+
+            status.textContent = text;
+            status.style.color = color;
+            status.style.background = color === '#ED4245'
+                ? 'rgba(237, 66, 69, 0.12)'
+                : color === '#FEE75C'
+                    ? 'rgba(254, 231, 92, 0.16)'
+                    : 'rgba(43, 255, 111, 0.12)';
+        }
+
+        // Gather the form values and send the RPC start request.
+        function startStatus() {
+            const clientId = getFieldValue('clientId');
+            const lyrics = getFieldValue('lyrics');
+            const intervalSeconds = getFieldValue('intervalSeconds');
+            const stateLabel = getFieldValue('stateLabel') || 'Made by eZbake with JavaScript';
+            const btn1Label = getFieldValue('btn1Label');
+            const btn1Url = getFieldValue('btn1Url');
+            const btn2Label = getFieldValue('btn2Label');
+            const btn2Url = getFieldValue('btn2Url');
+
+            if (!clientId) {
+                updateStatusText('Missing Client ID', '#ED4245');
+                return;
+            }
+
+            if (!lyrics) {
+                updateStatusText('No statuses entered', '#ED4245');
+                return;
+            }
+
+            console.log('Sending start-rpc event');
+
+            ipcRenderer.send('start-rpc', {
+                clientId,
+                lyrics,
+                intervalSeconds,
+                stateLabel,
+                btn1Label,
+                btn1Url,
+                btn2Label,
+                btn2Url
+            });
+
+            updateStatusText('RPC Starting...', '#FEE75C');
+        }
+
+        // Ask the main process to stop the active RPC loop.
+        function stopStatus() {
+            console.log('Sending stop-rpc event');
+            ipcRenderer.send('stop-rpc');
+            updateStatusText('RPC Stopped', '#ED4245');
+        }
+
+        // Save simple local settings from the settings tab.
+        async function saveSettings() {
+            const settings = {
+                startupView: document.getElementById('startupView').value,
+                runAtStartup: document.getElementById('runAtStartup').checked,
+                trayBehavior: document.getElementById('trayBehavior').value,
+                stateLabel: getFieldValue('stateLabel')
+            };
+
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            const merged = { ...saved, ...settings };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+
+            const startupResult = await ipcRenderer.invoke('set-run-at-startup', settings.runAtStartup);
+            if (!startupResult.success) {
+                console.warn('Could not update startup setting:', startupResult.error);
+            }
+
+            console.log('Saved settings:', settings, 'Startup status:', startupResult);
+            updateStatusText('Settings saved', '#2BFF6F');
+        }
+
+        function savePresenceSettings() {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            const updated = {
+                ...saved,
+                clientId: getFieldValue('clientId'),
+                intervalSeconds: getFieldValue('intervalSeconds'),
+                lyrics: getFieldValue('lyrics'),
+                btn1Label: getFieldValue('btn1Label'),
+                btn1Url: getFieldValue('btn1Url'),
+                btn2Label: getFieldValue('btn2Label'),
+                btn2Url: getFieldValue('btn2Url')
+            };
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+            const presenceStatus = document.getElementById('presenceStatus');
+            if (presenceStatus) {
+                presenceStatus.textContent = 'Discord presence settings saved.';
+                presenceStatus.style.color = '#2BFF6F';
+                presenceStatus.style.background = 'rgba(43, 255, 111, 0.12)';
+            }
+        }
+
+        function sendWebhook() {
+            const webhookUrl = getFieldValue('webhookUrl');
+            const content = getFieldValue('webhookMessage');
+            const statusBox = document.getElementById('webhookStatus');
+
+            if (!webhookUrl || !content) {
+                statusBox.textContent = 'Webhook URL and message are required.';
+                statusBox.style.color = '#ED4245';
+                return;
+            }
+
+            statusBox.textContent = 'Sending webhook...';
+            statusBox.style.color = '#FEE75C';
+
+            ipcRenderer.send('send-webhook', { webhookUrl, content });
+        }
+
+        ipcRenderer.on('webhook-status', (event, payload) => {
+            const statusBox = document.getElementById('webhookStatus');
+            if (!statusBox) return;
+
+            statusBox.textContent = payload.message;
+            statusBox.style.color = payload.success ? '#2BFF6F' : '#ED4245';
+        });
+
+        function hideSplashScreen() {
+            const splash = document.getElementById('splash-screen');
+            if (!splash) return;
+            splash.classList.add('hidden');
+            window.setTimeout(() => {
+                if (splash.parentNode) {
+                    splash.parentNode.removeChild(splash);
+                }
+            }, 450);
+        }
+
+        // Initialize the view once the page has loaded.
+        window.addEventListener('DOMContentLoaded', () => {
+            renderToolkitModules();
+            renderSnippetList();
+            renderProjectLists();
+            loadSettings();
+            updateStatusText('Ready', '#2BFF6F');
+        });
+
+        window.addEventListener('load', hideSplashScreen);
+        window.setTimeout(hideSplashScreen, 4000);
+    </script>
+</body>
+</html>

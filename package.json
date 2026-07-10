@@ -1,0 +1,57 @@
+{
+  "name": "scriptfiend",
+  "version": "1.0.0",
+  "description": "eZbakes personal toolkit for various purposes.",
+  "main": "main.js",
+  "author": "eZbake",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dist": "electron-builder --win"
+  },
+  "dependencies": {
+    "discord-rpc": "^4.0.1",
+    "update-electron-app": "^3.3.0"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.ezbake.scriptfiend",
+    "productName": "ScriptFiend",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/*",
+      "!node_modules/.cache/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "YOUR_GITHUB_USERNAME",
+        "repo": "YOUR_GITHUB_REPO_NAME"
+      }
+    ]
+  }
+}
