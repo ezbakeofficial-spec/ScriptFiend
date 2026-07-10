@@ -460,16 +460,13 @@
                     <div class="panel">
                         <h3>Discord Presence Control</h3>
                         <label for="clientId">Client ID</label>
-                        <input type="text" id="clientId" value="881731543675060264">
+                        <input type="text" id="clientId" placeholder="Enter your Discord application client ID">
 
                         <label for="intervalSeconds">Update Interval (seconds)</label>
-                        <input type="number" id="intervalSeconds" min="1" step="1" value="15">
+                        <input type="number" id="intervalSeconds" min="1" step="1" placeholder="15">
 
                         <label for="lyrics">Status Lines</label>
-                        <textarea id="lyrics">Yeah, I'm forever a thug, ever a thug
-Baby, I'm forever in love, forever in love
-Make me feel better with love
-When I said I love you, bitch, I said it with love, yeah</textarea>
+                        <textarea id="lyrics" placeholder="Enter status text lines, one per line"></textarea>
                     </div>
 
                     <div class="panel">
@@ -477,11 +474,11 @@ When I said I love you, bitch, I said it with love, yeah</textarea>
                         <div class="row">
                             <div>
                                 <label for="btn1Label">Button 1 Label</label>
-                                <input type="text" id="btn1Label" value="My smoke playlist">
+                                <input type="text" id="btn1Label" placeholder="Button 1 label">
                             </div>
                             <div>
                                 <label for="btn1Url">Button 1 URL</label>
-                                <input type="text" id="btn1Url" value="https://open.spotify.com/playlist/20oyQjLHq7URjrAwBRlops?si=c701cb6a0d764e1c">
+                                <input type="text" id="btn1Url" placeholder="https://example.com">
                             </div>
                         </div>
 
@@ -671,7 +668,7 @@ When I said I love you, bitch, I said it with love, yeah</textarea>
                     </select>
 
                     <label for="stateLabel">Custom Status Label</label>
-                    <input type="text" id="stateLabel" value="Made by eZbake with JavaScript">
+                    <input type="text" id="stateLabel" placeholder="Enter a custom status label">
 
                     <div class="button-row">
                         <button class="primary" onclick="saveSettings()">Save Settings</button>
