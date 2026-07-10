@@ -7,6 +7,9 @@ const { autoUpdater } = require('electron-updater');
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
+// Force GitHub API usage for private repos
+autoUpdater.forceDevUpdateConfig = false;
+autoUpdater.allowPrerelease = false;
 // Paste your GitHub Personal Access Token (PAT) here if you prefer embedding it directly in the app.
 // DO NOT commit this value to source control.
 // Example (uncomment and replace with your token):
@@ -85,6 +88,14 @@ app.whenReady().then(() => {
 
     autoUpdater.on('error', (err) => {
         console.log('Update error:', err);
+    });
+
+    autoUpdater.on('update-available', () => {
+        console.log('Update available!');
+    });
+
+    autoUpdater.on('update-downloaded', () => {
+        console.log('Update downloaded!');
     });
 
     const iconPath = path.join(__dirname, 'icon.png');
