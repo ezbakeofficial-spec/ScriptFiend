@@ -96,6 +96,23 @@
             position: relative;
         }
 
+        .version-badge {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            z-index: 1000;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(2, 8, 4, 0.96);
+            border: 1px solid rgba(43, 255, 111, 0.18);
+            color: var(--text);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(43, 255, 111, 0.08);
+            pointer-events: none;
+        }
+
         #home {
             position: relative;
         }
@@ -399,6 +416,7 @@
         </div>
 
         <div class="content">
+            <div id="versionBadge" class="version-badge">v?</div>
             <div id="home" class="tab active">
                 <div class="home-hero">
                     <h2>Welcome to ScriptFiend</h2>
@@ -659,6 +677,8 @@ When I said I love you, bitch, I said it with love, yeah</textarea>
                         <button class="primary" onclick="saveSettings()">Save Settings</button>
                     </div>
                 </div>
+
+                <!-- GitHub PAT UI removed per user request -->
 
                 <div class="panel">
                     <h3>Toolkit Modules</h3>
@@ -1218,6 +1238,8 @@ When I said I love you, bitch, I said it with love, yeah</textarea>
             }
         }
 
+        // GitHub PAT UI and handler removed — set token directly in `main.js` if needed.
+
         function sendWebhook() {
             const webhookUrl = getFieldValue('webhookUrl');
             const content = getFieldValue('webhookMessage');
@@ -1360,6 +1382,12 @@ When I said I love you, bitch, I said it with love, yeah</textarea>
             renderSnippetList();
             renderProjectLists();
             loadSettings();
+            ipcRenderer.invoke('get-app-version').then((result) => {
+                const versionBadge = document.getElementById('versionBadge');
+                if (versionBadge && result && result.success) {
+                    versionBadge.textContent = `v${result.version}`;
+                }
+            }).catch(() => {});
             ipcRenderer.invoke('is-app-packaged').then((result) => {
                 if (result && result.packaged) {
                     checkForUpdates();

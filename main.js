@@ -7,7 +7,26 @@ const { autoUpdater } = require('electron-updater');
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
+// Paste your GitHub Personal Access Token (PAT) here if you prefer embedding it directly in the app.
+// DO NOT commit this value to source control.
+// Example (uncomment and replace with your token):
+// const GH_TOKEN = 'ghp_your_token_here';
+// process.env.GH_TOKEN = GH_TOKEN;
+// process.env.GITHUB_TOKEN = GH_TOKEN;
 
+function configureUpdaterAuth() {
+    const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+    if (token) {
+        autoUpdater.requestHeaders = {
+            Authorization: `token ${token}`
+        };
+        console.log('autoUpdater: using GitHub token for authenticated update checks.');
+    } else {
+        console.warn('autoUpdater: no GitHub token found; update checks may return 404 for private repos.');
+    }
+}
+
+configureUpdaterAuth();
 //Okay so like...this app will only work if you have a completely unmodified discord client intalled on your computer. if you have a modified client such as BetterDiscord, Powercord, or Replugged, this app will not work. This is because those clients block the Discord RPC API. If you have a modified client installed, please uninstall it and install the official Discord client from https://discord.com/download.
 
 
@@ -60,6 +79,13 @@ function createWindow() {
 
 app.whenReady().then(() => {
     createWindow();
+
+    configureUpdaterAuth();
+    autoUpdater.checkForUpdatesAndNotify();
+
+    autoUpdater.on('error', (err) => {
+        console.log('Update error:', err);
+    });
 
     const iconPath = path.join(__dirname, 'icon.png');
 
@@ -169,6 +195,31 @@ ipcMain.handle('check-for-updates', async () => {
 
 ipcMain.handle('is-app-packaged', () => {
     return { success: true, packaged: app.isPackaged };
+});
+
+ipcMain.handle('get-app-version', () => {
+    return { success: true, version: app.getVersion() };
+});
+
+// Allow the renderer to set a GitHub Personal Access Token (PAT) at runtime.
+// The token will be assigned to process.env.GH_TOKEN so electron-updater
+// can authenticate requests against the GitHub API when checking for updates.
+ipcMain.handle('set-gh-token', async (event, token) => {
+    try {
+        if (!token || typeof token !== 'string') return { success: false, message: 'Invalid token' };
+        process.env.GH_TOKEN = token.trim();
+        // Also support older env name used by some workflows
+        process.env.GITHUB_TOKEN = token.trim();
+        configureUpdaterAuth();
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('get-gh-token-present', () => {
+    const present = !!(process.env.GH_TOKEN || process.env.GITHUB_TOKEN);
+    return { success: true, present };
 });
 
 ipcMain.handle('download-update', async () => {
