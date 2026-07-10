@@ -63,14 +63,28 @@ function fetchLatestRelease() {
             });
         });
 
+        let requestCompleted = false;
+
         // Fail the request if it takes too long — prevents indefinite "checking" state
         request.setTimeout(15000, () => {
+            if (requestCompleted) {
+                return;
+            }
+
+            //abort the request to free up resources. but when an abort is not needed, do not call it, as it will throw an error if the request has already completed.
             request.abort();
             reject(new Error('GitHub release lookup timed out'));
+            console.warn('GitHub release lookup timed out');
+        });
+
+        request.on('response', (response) => {
+            requestCompleted = true;
         });
 
         request.on('error', (err) => {
-            reject(err);
+            if (!requestCompleted) {
+                reject(err);
+            }
         });
 
         request.end();
