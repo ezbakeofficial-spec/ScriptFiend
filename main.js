@@ -1,35 +1,318 @@
 // At the top of your main.js file, with your other requires
-const {app, BrowserWindow, ipcMain, Tray, Menu, nativeImage} = require('electron');
+const {app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell} = require('electron');
 const path = require('path');
+const fs = require('fs');
 const RPC = require("discord-rpc");
 const https = require("https");
-const { autoUpdater } = require('electron-updater');
 
-autoUpdater.autoDownload = false;
-autoUpdater.autoInstallOnAppQuit = false;
-// Force GitHub API usage for private repos
-autoUpdater.forceDevUpdateConfig = false;
-autoUpdater.allowPrerelease = false;
-// Paste your GitHub Personal Access Token (PAT) here if you prefer embedding it directly in the app.
-// DO NOT commit this value to source control.
-// Example (uncomment and replace with your token):
-// const GH_TOKEN = 'ghp_your_token_here';
-// process.env.GH_TOKEN = GH_TOKEN;
-// process.env.GITHUB_TOKEN = GH_TOKEN;
+const UPDATE_OWNER = 'ezbakeofficial-spec';
+const UPDATE_REPO = 'ScriptFiend';
+let latestReleaseInfo = null;
+let downloadedUpdatePath = null;
 
-function configureUpdaterAuth() {
-    const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
-    if (token) {
-        autoUpdater.requestHeaders = {
-            Authorization: `token ${token}`
+function normalizeVersion(version) {
+    return String(version || '').replace(/^v/i, '').trim();
+}
+
+function compareVersions(a, b) {
+    const left = normalizeVersion(a).split('.').map((part) => Number.parseInt(part, 10) || 0);
+    const right = normalizeVersion(b).split('.').map((part) => Number.parseInt(part, 10) || 0);
+    const maxLength = Math.max(left.length, right.length);
+
+    for (let i = 0; i < maxLength; i += 1) {
+        const leftPart = left[i] || 0;
+        const rightPart = right[i] || 0;
+
+        if (leftPart > rightPart) return 1;
+        if (leftPart < rightPart) return -1;
+    }
+
+    return 0;
+}
+
+function fetchLatestRelease() {
+    return new Promise((resolve, reject) => {
+        const requestOptions = {
+            hostname: 'api.github.com',
+            path: `/repos/${UPDATE_OWNER}/${UPDATE_REPO}/releases/latest`,
+            method: 'GET',
+            headers: {
+                'User-Agent': `${UPDATE_REPO}-updater`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
         };
-        console.log('autoUpdater: using GitHub token for authenticated update checks.');
+
+        const request = https.request(requestOptions, (response) => {
+            let body = '';
+
+            response.on('data', (chunk) => {
+                body += chunk;
+            });
+
+            response.on('end', () => {
+                if (response.statusCode !== 200) {
+                    reject(new Error(`GitHub release lookup failed with status ${response.statusCode}`));
+                    return;
+                }
+
+                try {
+                    resolve(JSON.parse(body));
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        // Fail the request if it takes too long — prevents indefinite "checking" state
+        request.setTimeout(15000, () => {
+            request.abort();
+            reject(new Error('GitHub release lookup timed out'));
+        });
+
+        request.on('error', (err) => {
+            reject(err);
+        });
+
+        request.end();
+    });
+}
+
+function sendUpdateStatus(payload) {
+    if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send('update-status', payload);
     } else {
-        console.warn('autoUpdater: no GitHub token found; update checks may return 404 for private repos.');
+        console.warn('sendUpdateStatus: mainWindow not ready, payload=', payload);
     }
 }
 
-configureUpdaterAuth();
+function getLatestRelease() {
+    const ghToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+
+    function performRequest(useAuth) {
+        return new Promise((resolve, reject) => {
+            const requestOptions = {
+                hostname: 'api.github.com',
+                path: `/repos/${UPDATE_OWNER}/${UPDATE_REPO}/releases/latest`,
+                method: 'GET',
+                headers: {
+                    'User-Agent': `${UPDATE_REPO}-updater`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            };
+
+            if (useAuth && ghToken) {
+                requestOptions.headers.Authorization = `token ${ghToken}`;
+            }
+
+            const request = https.request(requestOptions, (response) => {
+                let body = '';
+
+                response.on('data', (chunk) => {
+                    body += chunk;
+                });
+
+                response.on('end', () => {
+                    if (response.statusCode === 200) {
+                        try {
+                            resolve(JSON.parse(body));
+                        } catch (err) {
+                            reject(err);
+                        }
+                        return;
+                    }
+
+                    const url = `https://${requestOptions.hostname}${requestOptions.path}`;
+                    const bodySnippet = body ? (body.length > 1000 ? body.slice(0, 1000) + '...' : body) : '';
+                    resolve({ __errorStatus: response.statusCode, url, bodySnippet });
+                });
+            });
+
+            request.setTimeout(15000, () => {
+                request.abort();
+                reject(new Error('GitHub release lookup timed out'));
+            });
+
+            request.on('error', (err) => {
+                reject(err);
+            });
+
+            request.end();
+        });
+    }
+
+    return performRequest(Boolean(ghToken)).then(async (result) => {
+        if (result && result.__errorStatus) {
+            if (result.__errorStatus === 401 && ghToken) {
+                const retry = await performRequest(false);
+                if (retry && retry.__errorStatus) {
+                    throw new Error(`GitHub release lookup failed with status ${retry.__errorStatus} for ${retry.url}: ${retry.bodySnippet}`);
+                }
+                return retry;
+            }
+
+            throw new Error(`GitHub release lookup failed with status ${result.__errorStatus} for ${result.url}: ${result.bodySnippet}`);
+        }
+
+        return result;
+    });
+}
+
+async function checkForUpdatesInternal() {
+    try {
+        // notify renderer we're checking
+        sendUpdateStatus({ state: 'checking' });
+        const releaseInfo = await getLatestRelease();
+        latestReleaseInfo = releaseInfo;
+
+        const latestVersion = normalizeVersion(releaseInfo.tag_name || releaseInfo.name || '');
+        const currentVersion = normalizeVersion(app.getVersion());
+
+        if (!latestVersion) {
+            const message = 'Latest release version could not be determined.';
+            sendUpdateStatus({ state: 'error', message });
+            return { success: false, error: message };
+        }
+
+        if (compareVersions(latestVersion, currentVersion) <= 0) {
+            sendUpdateStatus({ state: 'not-available' });
+            return { success: true, available: false };
+        }
+
+        const releaseNotes = String(releaseInfo.body || '').trim();
+        sendUpdateStatus({ state: 'available', version: latestVersion, releaseNotes });
+
+        return { success: true, available: true, version: latestVersion, releaseNotes };
+    } catch (err) {
+        const message = err && err.message ? err.message : 'Failed to check for updates.';
+        sendUpdateStatus({ state: 'error', message });
+        return { success: false, error: message };
+    }
+}
+
+async function downloadUpdateAsset() {
+    if (!latestReleaseInfo) {
+        const checkResult = await checkForUpdatesInternal();
+        if (!checkResult.success || !checkResult.available) {
+            throw new Error(checkResult.error || 'No update is available.');
+        }
+    }
+
+    const asset = Array.isArray(latestReleaseInfo.assets)
+        ? latestReleaseInfo.assets.find((entry) => {
+            const name = String(entry.name || '').toLowerCase();
+            return entry.browser_download_url && name.endsWith('.exe');
+        })
+        : null;
+
+    if (!asset) {
+        throw new Error('No Windows installer asset found in the latest release.');
+    }
+
+        const baseName = String(asset.name || 'update').replace(/\.exe$/i, '');
+        const targetPath = path.join(app.getPath('temp'), `${baseName}-${Date.now()}.exe`);
+    if (fs.existsSync(targetPath)) {
+        try {
+            fs.unlinkSync(targetPath);
+        } catch {}
+    }
+
+    // Download helper that writes to destPath and returns a promise.
+    function startDownload(destPath) {
+        const MAX_REDIRECTS = 5;
+        return new Promise((resolve, reject) => {
+            let aborted = false;
+
+            function doRequest(urlToGet, redirectsLeft) {
+                if (!redirectsLeft) {
+                    reject(new Error('Too many redirects while downloading update.'));
+                    return;
+                }
+
+                const fileStream = fs.createWriteStream(destPath);
+                const req = https.get(urlToGet, {
+                    headers: {
+                        'User-Agent': `${UPDATE_REPO}-updater`,
+                        'Accept': 'application/octet-stream'
+                    }
+                }, (response) => {
+                    // Handle redirects (301/302/303/307/308)
+                    if (response.statusCode >= 300 && response.statusCode < 400 && response.headers && response.headers.location) {
+                        try { fileStream.close(); } catch {}
+                        try { fs.unlinkSync(destPath); } catch {}
+                        const location = response.headers.location;
+                        // Follow relative or absolute location
+                        const nextUrl = location.startsWith('http') ? location : new URL(location, urlToGet).toString();
+                        // Consume response to free socket
+                        response.resume();
+                        doRequest(nextUrl, redirectsLeft - 1);
+                        return;
+                    }
+
+                    if (response.statusCode !== 200) {
+                        try { fileStream.close(); } catch {}
+                        try { fs.unlinkSync(destPath); } catch {}
+                        reject(new Error(`Update download failed with status ${response.statusCode}.`));
+                        return;
+                    }
+
+                    response.pipe(fileStream);
+
+                    fileStream.on('finish', () => {
+                        fileStream.close(() => {
+                            downloadedUpdatePath = destPath;
+                            sendUpdateStatus({ state: 'downloaded' });
+                            resolve(destPath);
+                        });
+                    });
+                });
+
+                req.on('error', (err) => {
+                    try { fileStream.close(); } catch {}
+                    try { fs.unlinkSync(destPath); } catch {}
+                    if (!aborted) reject(err);
+                });
+
+                fileStream.on('error', (err) => {
+                    try { fileStream.close(); } catch {}
+                    try { fs.unlinkSync(destPath); } catch {}
+                    if (!aborted) reject(err);
+                });
+            }
+
+            doRequest(asset.browser_download_url, MAX_REDIRECTS);
+        });
+    }
+
+    try {
+        return await startDownload(targetPath);
+    } catch (err) {
+        // If writing to Temp fails due to permissions, fall back to userData folder.
+        if (err && (err.code === 'EPERM' || err.code === 'EACCES')) {
+            const fallbackPath = path.join(app.getPath('userData'), `${baseName}-${Date.now()}.exe`);
+            try {
+                return await startDownload(fallbackPath);
+            } catch (err2) {
+                throw err2;
+            }
+        }
+
+        throw err;
+    }
+}
+
+async function installDownloadedUpdate() {
+    if (!downloadedUpdatePath || !fs.existsSync(downloadedUpdatePath)) {
+        throw new Error('No downloaded update available.');
+    }
+
+    const result = await shell.openPath(downloadedUpdatePath);
+    if (result) {
+        throw new Error(result);
+    }
+
+    app.quit();
+    return true;
+}
 //Okay so like...this app will only work if you have a completely unmodified discord client intalled on your computer. if you have a modified client such as BetterDiscord, Powercord, or Replugged, this app will not work. This is because those clients block the Discord RPC API. If you have a modified client installed, please uninstall it and install the official Discord client from https://discord.com/download.
 
 
@@ -83,20 +366,7 @@ function createWindow() {
 app.whenReady().then(() => {
     createWindow();
 
-    configureUpdaterAuth();
-    autoUpdater.checkForUpdatesAndNotify();
-
-    autoUpdater.on('error', (err) => {
-        console.log('Update error:', err);
-    });
-
-    autoUpdater.on('update-available', () => {
-        console.log('Update available!');
-    });
-
-    autoUpdater.on('update-downloaded', () => {
-        console.log('Update downloaded!');
-    });
+    // Update checks are triggered from the renderer UI after startup.
 
     const iconPath = path.join(__dirname, 'icon.png');
 
@@ -179,28 +449,28 @@ app.on('activate', () => {
     }
 });
 
-function sendUpdateStatus(payload) {
-    if (mainWindow && mainWindow.webContents) {
-        mainWindow.webContents.send('update-status', payload);
-    }
-}
-
-autoUpdater.on('checking-for-update', () => sendUpdateStatus({ state: 'checking' }));
-autoUpdater.on('update-available', (info) => sendUpdateStatus({ state: 'available', version: info.version, releaseNotes: info.releaseNotes || '' }));
-autoUpdater.on('update-not-available', () => sendUpdateStatus({ state: 'not-available' }));
-autoUpdater.on('update-downloaded', () => sendUpdateStatus({ state: 'downloaded' }));
-autoUpdater.on('error', (err) => sendUpdateStatus({ state: 'error', message: err ? err.message : 'Unknown update error' }));
-
 ipcMain.handle('check-for-updates', async () => {
     if (!app.isPackaged) {
         return { success: false, message: 'Update checks only work in packaged builds.' };
     }
 
+    // Guard the update check with a server-side timeout to ensure we always respond.
+        const TIMEOUT_MS = 60000;
     try {
-        await autoUpdater.checkForUpdates();
-        return { success: true };
+        return await Promise.race([
+            checkForUpdatesInternal(),
+            new Promise((resolve) => {
+                setTimeout(() => {
+                    const message = 'Update check timed out.';
+                    try { sendUpdateStatus({ state: 'error', message }); } catch (e) {}
+                    resolve({ success: false, error: message });
+                }, TIMEOUT_MS);
+            })
+        ]);
     } catch (err) {
-        return { success: false, error: err.message };
+        const message = err && err.message ? err.message : 'Update check failed.';
+        sendUpdateStatus({ state: 'error', message });
+        return { success: false, error: message };
     }
 });
 
@@ -212,43 +482,26 @@ ipcMain.handle('get-app-version', () => {
     return { success: true, version: app.getVersion() };
 });
 
-// Allow the renderer to set a GitHub Personal Access Token (PAT) at runtime.
-// The token will be assigned to process.env.GH_TOKEN so electron-updater
-// can authenticate requests against the GitHub API when checking for updates.
-ipcMain.handle('set-gh-token', async (event, token) => {
-    try {
-        if (!token || typeof token !== 'string') return { success: false, message: 'Invalid token' };
-        process.env.GH_TOKEN = token.trim();
-        // Also support older env name used by some workflows
-        process.env.GITHUB_TOKEN = token.trim();
-        configureUpdaterAuth();
-        return { success: true };
-    } catch (err) {
-        return { success: false, error: err.message };
-    }
-});
-
-ipcMain.handle('get-gh-token-present', () => {
-    const present = !!(process.env.GH_TOKEN || process.env.GITHUB_TOKEN);
-    return { success: true, present };
-});
-
 ipcMain.handle('download-update', async () => {
     if (!app.isPackaged) {
         return { success: false, message: 'Update downloads only work in packaged builds.' };
     }
 
     try {
-        await autoUpdater.downloadUpdate();
+        await downloadUpdateAsset();
         return { success: true };
     } catch (err) {
         return { success: false, error: err.message };
     }
 });
 
-ipcMain.handle('install-update', () => {
+ipcMain.handle('install-update', async () => {
+    if (!app.isPackaged) {
+        return { success: false, message: 'Update install only works in packaged builds.' };
+    }
+
     try {
-        autoUpdater.quitAndInstall();
+        await installDownloadedUpdate();
         return { success: true };
     } catch (err) {
         return { success: false, error: err.message };

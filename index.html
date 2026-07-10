@@ -1332,12 +1332,35 @@ When I said I love you, bitch, I said it with love, yeah</textarea>
             document.getElementById('downloadUpdateButton').style.display = 'none';
             document.getElementById('installUpdateButton').style.display = 'none';
 
-            const result = await ipcRenderer.invoke('check-for-updates');
-            if (!result.success) {
-                statusBox.textContent = result.message || result.error || 'Update check failed.';
+            // Client-side timeout fallback in case the IPC invoke stalls.
+            const CLIENT_TIMEOUT_MS = 60000;
+            let timedOut = false;
+            const timeoutId = setTimeout(() => {
+                timedOut = true;
+                statusBox.textContent = 'Update check timed out.';
                 statusBox.style.color = '#ED4245';
                 statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
                 document.getElementById('checkForUpdatesButton').style.display = 'inline-flex';
+            }, CLIENT_TIMEOUT_MS);
+
+            try {
+                const result = await ipcRenderer.invoke('check-for-updates');
+                if (timedOut) return; // already handled by timeout
+                clearTimeout(timeoutId);
+                if (!result.success) {
+                    statusBox.textContent = result.message || result.error || 'Update check failed.';
+                    statusBox.style.color = '#ED4245';
+                    statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+                    document.getElementById('checkForUpdatesButton').style.display = 'inline-flex';
+                }
+            } catch (err) {
+                if (!timedOut) {
+                    clearTimeout(timeoutId);
+                    statusBox.textContent = err && err.message ? err.message : 'Update check failed.';
+                    statusBox.style.color = '#ED4245';
+                    statusBox.style.background = 'rgba(237, 66, 69, 0.12)';
+                    document.getElementById('checkForUpdatesButton').style.display = 'inline-flex';
+                }
             }
         }
 
